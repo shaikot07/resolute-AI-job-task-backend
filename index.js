@@ -47,9 +47,16 @@ async function run() {
         const messageCollection = client.db('resoluteAiJobProject').collection('messages');
         // Socket.io connection
         io.on('connection', (socket) => {
-              console.log('New WebSocket connection');
+            console.log('New WebSocket connection');
 
             // Listen for new messages
+            // Listen for new messages
+            // socket.on('sendMessage', async (message) => {
+            //     // Add timestamp to the message
+            //     message.timestamp = new Date();
+            //     await messageCollection.insertOne(message);
+            //     io.emit('message', message);
+            // });
             socket.on('sendMessage', async (message) => {
                 const newMessage = new Message({ text: message });
                 await newMessage.save();
@@ -58,21 +65,29 @@ async function run() {
         });
 
         // Message routes for RESTful API
-        app.post('/messages', async (req, res) => {
 
+        app.post('/messages', async (req, res) => {
             try {
-                const message = req.body; // Extract text from request body
-                console.log(message);
-                // const newMessage = new Message(  message ); 
+                const message = req.body;
+                message.timestamp = new Date(); // Add timestamp
                 const result = await messageCollection.insertOne(message);
-                res.status(201).send(result); // Send inserted message with ID
+                res.status(201).send(result);
             } catch (error) {
                 console.error('Error saving message:', error);
                 res.status(500).send({ message: 'Internal server error' });
             }
         });
 
-
+        app.get('/messages', async (req, res) => {
+            try {
+                const messages = await messageCollection.find().toArray();
+                res.send(messages);
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+                res.status(500).send({ message: 'Internal server error' });
+            }
+        });
+        // user related  api 
         app.post('/users', async (req, res) => {
             const user = req.body;
             // insert email if user  doseno't exists 
@@ -84,19 +99,6 @@ async function run() {
             const result = await userCollection.insertOne(user);
             res.send(result);
         })
-
-
-        app.get('/messages', async (req, res) => {
-            try {
-                const messages = await messageCollection.find().toArray();
-                res.send(messages);
-            } catch (error) {
-                console.error('Error fetching messages:', error);
-                res.status(500).send({ message: 'Internal server error' });
-            }
-        });
-
-
 
 
         app.get('/users', async (req, res) => {
